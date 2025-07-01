@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>破天导播文件-倒计时</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #title {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        #timer {
+            font-size: 72px;
+            font-weight: bold;
+            text-align: center;
+        }
+        button {
+            font-size: 24px;
+            padding: 10px 20px;
+            margin: 10px;
+        }
+        input {
+            font-size: 24px;
+            padding: 10px;
+            margin: 10px;
+            width: 200px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="title">破天-导播（倒计时）控件</div>
+    <div>
+        <div id="timer"></div>
+        </br></br></br></br></br></br>
+        <button onclick="startCountdown(600)">10分钟倒计时</button>
+        <button onclick="startCountdown(300)">5分钟倒计时</button>
+        <button onclick="startCountdown(60)">60秒倒计时</button>
+        <button onclick="pauseCountdown()">暂停</button>
+        <button onclick="resumeCountdown()">开始</button>
+        <input type="number" id="customTime" placeholder="自定义时间 (秒)">
+        <button onclick="startCustomCountdown()">开始自定义时间</button>
+        <button onclick="resetCountdown()">重置</button>
+    </div>
+
+    <script>
+        let countdown;
+        let endTime;
+        let pausedTime;
+        let remainingTime;
+        let initialSeconds = 600; // Default to 10 minutes
+
+        function startCountdown(seconds) {
+            clearInterval(countdown);
+            initialSeconds = seconds; // Update the initial seconds
+            const currentTime = Date.now();
+            endTime = currentTime + seconds * 1000;
+
+            countdown = setInterval(() => {
+                const timeLeft = endTime - Date.now();
+                if (timeLeft >= 0) {
+                    if (seconds === 80) {
+                        document.getElementById('timer').innerText = '导播彩蛋';
+                    } else {
+                        updateTimer(timeLeft);
+                    }
+                } else {
+                    updateTimer(0);
+                    clearInterval(countdown);
+                    document.getElementById('timer').innerText = '';
+                }
+            }, 1);
+        }
+
+        function pauseCountdown() {
+            clearInterval(countdown);
+            remainingTime = endTime - Date.now();
+        }
+
+        function resumeCountdown() {
+            if (remainingTime) {
+                endTime = Date.now() + remainingTime;
+                countdown = setInterval(() => {
+                    const timeLeft = endTime - Date.now();
+                    if (timeLeft >= 0) {
+                        updateTimer(timeLeft);
+                    } else {
+                        updateTimer(0);
+                        clearInterval(countdown);
+                        document.getElementById('timer').innerText = '';
+                    }
+                }, 1);
+                remainingTime = null;
+            }
+        }
+
+        function startCustomCountdown() {
+            const customTime = document.getElementById('customTime').value;
+            if (customTime && customTime > 0 && customTime <= 86400) {
+                startCountdown(customTime);
+            } else {
+                alert('请输入有效的自定义时间（秒），且不超过24小时（86400秒）');
+            }
+        }
+
+        function resetCountdown() {
+            clearInterval(countdown);
+            document.getElementById('timer').innerText = '';
+        }
+
+        function updateTimer(time) {
+            const hours = Math.floor((time % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const minutes = Math.floor((time % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const seconds = Math.floor((time % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            const milliseconds = Math.floor((time % 1000)).toString().padStart(3, '0');
+
+            if (hours > 0) {
+                document.getElementById('timer').innerText = `${hours}:${minutes}:${seconds}:${milliseconds}`;
+            } else if (minutes > 0) {
+                document.getElementById('timer').innerText = `${minutes}:${seconds}:${milliseconds}`;
+            } else {
+                document.getElementById('timer').innerText = `${seconds}:${milliseconds}`;
+            }
+        }
+
+
+        window.onload = function() {
+            startCountdown(600); // Default start with 10 minutes
+        }
+    </script>
+    <p>© 版权所有 破天星辰科技网络导播中心 xctcn.cn | potiankeji.top 2025</p>
+</body>
+</html>
