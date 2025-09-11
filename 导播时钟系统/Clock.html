@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>破天时间控件-时钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: transparent;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            width: 220px;
+            height: 140px;
+        }
+        
+        .time-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+            width: 200px;
+        }
+        
+        .date-container {
+            position: absolute;
+            top: 80px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 8px 15px;
+            text-align: center;
+            width: 200px;
+        }
+        
+        .time-display {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .date-display {
+            font-size: 1rem;
+            color: #cccccc;
+            margin-bottom: 5px;
+        }
+        
+        .status {
+            font-size: 0.8rem;
+            color: #cccccc;
+            opacity: 0.8;
+        }
+        
+        .local-time {
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-container">
+        <div class="time-display" id="timeDisplay">00:00:00</div>
+    </div>
+    
+    <div class="date-container">
+        <div class="date-display" id="dateDisplay">0000-00-00</div>
+        <div class="status" id="status">正在同步时间...</div>
+    </div>
+
+    <script>
+        // 破天星辰科技网络基于接口盒子时间接口制作的导视右上角时间显示插件，适用于obs
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeDisplay = document.getElementById('timeDisplay');
+            const dateDisplay = document.getElementById('dateDisplay');
+            const statusElement = document.getElementById('status');
+            
+            // 阿里云时间API配置
+            const apiUrl = 'https://cn.apihz.cn/api/time/getapi.php';
+            const apiParams = {
+                id: '88888888',
+                key: '88888888',
+                type: '2'
+            };
+            
+            let isNetworkTime = false;
+            let timeOffset = 0;
+            
+            // 获取阿里云时间
+            function fetchAliyunTime() {
+                const url = `${apiUrl}?${new URLSearchParams(apiParams)}`;
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error('网络响应不正常');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.code === 200) {
+                            // 解析阿里云返回的时间字符串
+                            const timeStr = data.msg;
+                            const [datePart, timePart] = timeStr.split(' ');
+                            const [year, month, day] = datePart.split('-');
+                            const [hours, minutes, seconds] = timePart.split(':');
+                            
+                            // 创建日期对象
+                            const serverTime = new Date(year, month - 1, day, hours, minutes, seconds);
+                            
+                            // 计算时间偏移
+                            timeOffset = serverTime - new Date();
+                            isNetworkTime = true;
+                            
+                            // 更新UI
+                            timeDisplay.classList.remove('local-time');
+                            statusElement.textContent = '接口盒子api时间 (已同步)';
+                            
+                            // 开始更新时间
+                            updateTime();
+                            setInterval(updateTime, 1000);
+                        } else {
+                            throw new Error(data.msg);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取接口盒子api时间失败:', error);
+                        fallbackToLocalTime();
+                    });
+            }
+            
+            // 回退到本地时间
+            function fallbackToLocalTime() {
+                isNetworkTime = false;
+                timeDisplay.classList.add('local-time');
+                statusElement.textContent = '当前使用本地时间';
+                
+                // 开始更新时间
+                updateTime();
+                setInterval(updateTime, 1000);
+            }
+            
+            // 更新时间显示
+            function updateTime() {
+                const now = isNetworkTime ? new Date(Date.now() + timeOffset) : new Date();
+                
+                // 格式化时间
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                
+                // 格式化日期
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                
+                // 更新显示
+                timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+                dateDisplay.textContent = `${year}-${month}-${day}`;
+            }
+            
+            // 初始化
+            fetchAliyunTime();
+        });
+    </script>
+</body>
+</html>
