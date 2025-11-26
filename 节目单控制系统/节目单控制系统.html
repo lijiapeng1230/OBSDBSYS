@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>破天星辰网络直播栏目-节目单控制系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+        
+        /* 顶部播出信息区域 - 完全透明 */
+        .broadcast-info {
+            display: flex;
+            height: 140px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 204, 0, 0.3);
+            margin-bottom: 10px;
+        }
+        
+        .current-program, .next-program {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            background: transparent !important;
+        }
+        
+        /* 移除所有背景 */
+        .current-program::before, .next-program::before {
+            display: none;
+        }
+        
+        .program-label {
+            font-size: 18px;
+            color: #ffcc00;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 
+                0 0 10px rgba(255, 204, 0, 0.8),
+                0 0 20px rgba(255, 204, 0, 0.6),
+                0 0 30px rgba(255, 204, 0, 0.4);
+            animation: slideInLeft 2s ease-out;
+        }
+        
+        .program-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6),
+                0 0 30px rgba(255, 255, 255, 0.4),
+                2px 2px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000;
+            animation: fadeInUp 3s ease-out 0.3s both;
+        }
+        
+        .program-time {
+            font-size: 18px;
+            color: #6985ff;
+            text-shadow: 
+                0 0 10px rgba(204, 204, 204, 0.8),
+                0 0 20px rgba(204, 204, 204, 0.6);
+            animation: fadeIn 3s ease-out 0.6s both;
+        }
+        
+        /* 主内容区域 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 0 15px 15px;
+            gap: 15px;
+        }
+        
+        /* 节目单列表区域 */
+        .program-list-container {
+            width: 70%;
+            background-color: rgba(20, 20, 40, 0.85);
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .program-list-title {
+            font-size: 22px;
+            color: #ffcc00;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 204, 0, 0.3);
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+            animation: fadeInDown 1s ease-out;
+        }
+        
+        .program-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .program-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background-color: rgba(40, 40, 80, 0.7);
+            border-radius: 8px;
+            border-left: 4px solid #ffcc00;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        .program-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .program-item.current {
+            background-color: rgba(60, 60, 120, 0.9);
+            border-left: 4px solid #ff3333;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+            animation: pulseGlow 2s infinite;
+        }
+        
+        .program-item.next {
+            background-color: rgba(50, 50, 100, 0.8);
+            border-left: 4px solid #33cc33;
+            box-shadow: 0 0 10px rgba(51, 204, 51, 0.3);
+        }
+        
+        .program-time-slot {
+            width: 140px;
+            font-size: 16px;
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        
+        .program-name {
+            flex: 1;
+            font-size: 18px;
+            color: #ffffff;
+        }
+        
+        .program-duration {
+            width: 80px;
+            text-align: right;
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+        
+        .program-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        
+        .program-btn {
+            padding: 6px 12px;
+            background-color: #333355;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .program-btn:hover {
+            background-color: #444477;
+            transform: scale(1.05);
+        }
+        
+        .program-btn.edit {
+            background-color: #ffcc00;
+            color: #000000;
+        }
+        
+        .program-btn.delete {
+            background-color: #cc3333;
+        }
+        
+        /* 控制面板区域 */
+        .control-panel {
+            width: 30%;
+            background-color: rgba(15, 15, 35, 0.85);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .control-section {
+            background-color: rgba(30, 30, 60, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(42, 42, 90, 0.5);
+            animation: fadeInRight 1s ease-out;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            color: #ffcc00;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 204, 0, 0.3);
+            text-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
+        }
+        
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .control-btn {
+            padding: 12px;
+            background-color: #333355;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-btn:hover {
+            background-color: #444477;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .control-btn.primary {
+            background-color: #0066cc;
+        }
+        
+        .control-btn.primary:hover {
+            background-color: #0077ee;
+        }
+        
+        .control-btn.warning {
+            background-color: #cc6600;
+        }
+        
+        .control-btn.warning:hover {
+            background-color: #dd7700;
+        }
+        
+        .control-btn.danger {
+            background-color: #cc3333;
+        }
+        
+        .control-btn.danger:hover {
+            background-color: #dd4444;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #cccccc;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(42, 42, 90, 0.7);
+            background-color: rgba(26, 26, 58, 0.7);
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #ffcc00;
+            box-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+        }
+        
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .status-display {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #cccccc;
+            text-align: center;
+            border: 1px solid rgba(255, 204, 0, 0.2);
+            animation: fadeIn 1s ease-out;
+        }
+        
+        /* 底部状态栏 */
+        .status-bar {
+            background-color: rgba(20, 20, 40, 0.9);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 204, 0, 0.3);
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .clock {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        /* 编辑节目单模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: #1a1a3a;
+            padding: 25px;
+            border-radius: 10px;
+            width: 500px;
+            max-width: 90%;
+            border: 2px solid #2a2a5a;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            animation: modalFadeIn 0.5s ease-out;
+        }
+        
+        .modal-title {
+            font-size: 22px;
+            color: #ffcc00;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        /* 动画定义 - 更慢的动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(255, 51, 51, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(255, 51, 51, 0.8); }
+            100% { box-shadow: 0 0 15px rgba(255, 51, 51, 0.5); }
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+            50% { text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 30px rgba(255, 255, 255, 0.8); }
+            100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+        }
+        
+        @keyframes textPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 30, 60, 0.5);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a5a;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3a7a;
+        }
+        
+        /* 节目项动画延迟 */
+        .program-item:nth-child(1) { animation-delay: 0.1s; }
+        .program-item:nth-child(2) { animation-delay: 0.2s; }
+        .program-item:nth-child(3) { animation-delay: 0.3s; }
+        .program-item:nth-child(4) { animation-delay: 0.4s; }
+        .program-item:nth-child(5) { animation-delay: 0.5s; }
+        .program-item:nth-child(6) { animation-delay: 0.6s; }
+        .program-item:nth-child(7) { animation-delay: 0.7s; }
+        .program-item:nth-child(8) { animation-delay: 0.8s; }
+        .program-item:nth-child(9) { animation-delay: 0.9s; }
+        .program-item:nth-child(10) { animation-delay: 1.0s; }
+        
+        /* 控制区域动画延迟 */
+        .control-section:nth-child(1) { animation-delay: 0.2s; }
+        .control-section:nth-child(2) { animation-delay: 0.4s; }
+        .control-section:nth-child(3) { animation-delay: 0.6s; }
+        
+        /* 布局控制按钮 */
+        .layout-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        /* 可拖动区域 */
+        .draggable {
+            cursor: move;
+            user-select: none;
+        }
+        
+        /* 布局选项 */
+        .layout-option {
+            padding: 8px 12px;
+            background-color: rgba(40, 40, 80, 0.7);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .layout-option:hover {
+            background-color: rgba(60, 60, 120, 0.9);
+        }
+        
+        .layout-option.active {
+            background-color: #ffcc00;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部播出信息区域 - 完全透明 -->
+    <div class="broadcast-info">
+        <div class="current-program draggable" id="currentProgram">
+            <div class="program-label">正在播出</div>
+            <div class="program-title" id="currentProgramTitle">-- 暂无节目 --</div>
+            <div class="program-time" id="currentProgramTime">--:-- -- --:--</div>
+        </div>
+        <div class="next-program draggable" id="nextProgram">
+            <div class="program-label">接下来</div>
+            <div class="program-title" id="nextProgramTitle">-- 暂无节目 --</div>
+            <div class="program-time" id="nextProgramTime">--:-- -- --:--</div>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-container">
+        <!-- 节目单列表区域 -->
+        <div class="program-list-container">
+            <div class="program-list-title">今日节目单</div>
+            <div class="program-list" id="programList">
+                <!-- 节目单内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 控制面板区域 -->
+        <div class="control-panel">
+            <div class="control-section">
+                <div class="section-title">播出控制</div>
+                <div class="control-buttons">
+                    <button class="control-btn primary" id="playBtn">开始播出</button>
+                    <button class="control-btn warning" id="pauseBtn">暂停播出</button>
+                    <button class="control-btn" id="prevBtn">上一个节目</button>
+                    <button class="control-btn" id="nextBtn">下一个节目</button>
+                </div>
+                <div class="status-display" id="broadcastStatus">准备就绪</div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">节目单管理</div>
+                <div class="control-buttons">
+                    <button class="control-btn primary" id="addProgramBtn">添加节目</button>
+                    <button class="control-btn" id="saveProgramListBtn">保存节目单</button>
+                    <button class="control-btn" id="loadProgramListBtn">加载节目单</button>
+                    <button class="control-btn danger" id="clearProgramListBtn">清空节目单</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">显示设置</div>
+                <div class="form-group">
+                    <label for="displayFormat">显示格式</label>
+                    <select id="displayFormat">
+                        <option value="separate">分开显示</option>
+                        <option value="combined">合并显示</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>文本动画效果</label>
+                    <div class="control-buttons">
+                        <button class="control-btn primary" id="glowEffectBtn">发光效果</button>
+                        <button class="control-btn" id="pulseEffectBtn">脉动效果</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>布局控制</label>
+                    <div class="layout-controls">
+                        <button class="control-btn" id="resetLayoutBtn">重置布局</button>
+                        <button class="control-btn primary" id="saveLayoutBtn">保存布局</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="status-bar">
+        <div>破天星辰网络直播栏目 - 节目单控制系统</div>
+        <div class="clock" id="currentTime">00:00:00</div>
+        <div id="systemStatus">系统运行正常</div>
+    </div>
+
+    <!-- 添加/编辑节目模态框 -->
+    <div class="modal" id="programModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">添加新节目</div>
+            <div class="form-group">
+                <label for="programName">节目名称</label>
+                <input type="text" id="programName" placeholder="输入节目名称">
+            </div>
+            <div class="form-group">
+                <label for="programDescription">节目描述</label>
+                <textarea id="programDescription" placeholder="输入节目描述（可选）"></textarea>
+            </div>
+            <div class="form-group">
+                <label>播出时间</label>
+                <div class="time-inputs">
+                    <div>
+                        <label for="startTime">开始时间</label>
+                        <input type="time" id="startTime" value="09:00">
+                    </div>
+                    <div>
+                        <label for="endTime">结束时间</label>
+                        <input type="time" id="endTime" value="10:00">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="control-btn" id="cancelProgramBtn">取消</button>
+                <button class="control-btn primary" id="saveProgramBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let programList = [];
+        let currentProgramIndex = -1;
+        let isPlaying = false;
+        let autoAdvance = true;
+        let editIndex = -1; // 正在编辑的节目索引，-1表示添加新节目
+        let displayFormat = 'separate'; // 显示格式：separate(分开)或combined(合并)
+        let textEffect = 'glow'; // 文本效果：glow(发光)或pulse(脉动)
+        
+        // 初始化函数
+        function initialize() {
+            loadProgramList();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setupEventListeners();
+            updateDisplay();
+            setupDraggableElements();
+            loadLayout();
+            
+            // 添加顶部区域动画效果
+            startTopSectionAnimation();
+        }
+        
+        // 设置可拖动元素
+        function setupDraggableElements() {
+            const draggables = document.querySelectorAll('.draggable');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('mousedown', function(e) {
+                    let shiftX = e.clientX - draggable.getBoundingClientRect().left;
+                    let shiftY = e.clientY - draggable.getBoundingClientRect().top;
+                    
+                    function moveAt(pageX, pageY) {
+                        draggable.style.left = pageX - shiftX + 'px';
+                        draggable.style.top = pageY - shiftY + 'px';
+                    }
+                    
+                    function onMouseMove(event) {
+                        moveAt(event.pageX, event.pageY);
+                    }
+                    
+                    // 移动元素
+                    document.addEventListener('mousemove', onMouseMove);
+                    
+                    // 放下元素，取消处理程序
+                    draggable.onmouseup = function() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        draggable.onmouseup = null;
+                        saveLayout();
+                    };
+                });
+                
+                draggable.ondragstart = function() {
+                    return false;
+                };
+            });
+        }
+        
+        // 保存布局
+        function saveLayout() {
+            const layout = {};
+            const draggables = document.querySelectorAll('.draggable');
+            
+            draggables.forEach(draggable => {
+                layout[draggable.id] = {
+                    left: draggable.style.left,
+                    top: draggable.style.top
+                };
+            });
+            
+            localStorage.setItem('programLayout', JSON.stringify(layout));
+        }
+        
+        // 加载布局
+        function loadLayout() {
+            const savedLayout = localStorage.getItem('programLayout');
+            if (savedLayout) {
+                const layout = JSON.parse(savedLayout);
+                
+                Object.keys(layout).forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.position = 'absolute';
+                        element.style.left = layout[id].left;
+                        element.style.top = layout[id].top;
+                    }
+                });
+            }
+        }
+        
+        // 重置布局
+        function resetLayout() {
+            const draggables = document.querySelectorAll('.draggable');
+            
+            draggables.forEach(draggable => {
+                draggable.style.position = 'static';
+                draggable.style.left = '';
+                draggable.style.top = '';
+            });
+            
+            localStorage.removeItem('programLayout');
+        }
+        
+        // 顶部区域动画效果
+        function startTopSectionAnimation() {
+            const titles = document.querySelectorAll('.program-title');
+            
+            // 每15秒重新触发一次动画（更慢）
+            setInterval(() => {
+                titles.forEach(title => {
+                    // 重置动画
+                    title.style.animation = 'none';
+                    setTimeout(() => {
+                        if (textEffect === 'glow') {
+                            title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textGlow 4s infinite alternate';
+                        } else {
+                            title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textPulse 3s infinite';
+                        }
+                    }, 10);
+                });
+            }, 15000);
+            
+            // 初始应用动画
+            titles.forEach(title => {
+                if (textEffect === 'glow') {
+                    title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textGlow 4s infinite alternate';
+                } else {
+                    title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textPulse 3s infinite';
+                }
+            });
+        }
+        
+        // 更新时钟
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0];
+            document.getElementById('currentTime').textContent = timeString;
+            
+            // 检查是否需要自动切换到下一个节目
+            if (isPlaying && autoAdvance) {
+                checkProgramAdvancement();
+            }
+        }
+        
+        // 检查节目自动切换
+        function checkProgramAdvancement() {
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            
+            // 如果当前节目已结束，切换到下一个
+            if (currentProgramIndex >= 0 && currentProgramIndex < programList.length) {
+                const currentProgram = programList[currentProgramIndex];
+                const endTime = timeToMinutes(currentProgram.endTime);
+                
+                if (currentTime >= endTime) {
+                    advanceToNextProgram();
+                }
+            }
+        }
+        
+        // 加载节目单
+        function loadProgramList() {
+            const savedProgramList = localStorage.getItem('programList');
+            if (savedProgramList) {
+                programList = JSON.parse(savedProgramList);
+            } else {
+                // 默认节目单
+                programList = [
+                    { name: "早间新闻", description: "国内外最新新闻动态", startTime: "09:00", endTime: "09:30" },
+                    { name: "财经报道", description: "股市行情和经济新闻", startTime: "09:30", endTime: "10:00" },
+                    { name: "电视剧《星辰大海》", description: "最新热门电视剧", startTime: "10:00", endTime: "11:30" },
+                    { name: "午间新闻", description: "午间新闻快报", startTime: "11:30", endTime: "12:00" },
+                    { name: "音乐时光", description: "经典老歌与流行音乐", startTime: "12:00", endTime: "13:00" }
+                ];
+            }
+            
+            const savedSettings = localStorage.getItem('programSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('stationName').value = settings.stationName || '破天星辰网络直播';
+                autoAdvance = settings.autoAdvance !== undefined ? settings.autoAdvance : true;
+                displayFormat = settings.displayFormat || 'separate';
+                textEffect = settings.textEffect || 'glow';
+                
+                // 更新显示格式选择
+                document.getElementById('displayFormat').value = displayFormat;
+                
+                // 更新文本效果按钮
+                updateTextEffectButtons();
+            }
+            
+            // 查找当前应该播放的节目
+            findCurrentProgram();
+        }
+        
+        // 查找当前应该播放的节目
+        function findCurrentProgram() {
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            
+            for (let i = 0; i < programList.length; i++) {
+                const program = programList[i];
+                const startTime = timeToMinutes(program.startTime);
+                const endTime = timeToMinutes(program.endTime);
+                
+                if (currentTime >= startTime && currentTime < endTime) {
+                    currentProgramIndex = i;
+                    return;
+                }
+            }
+            
+            // 如果没有找到当前节目，设置为第一个未开始的节目
+            for (let i = 0; i < programList.length; i++) {
+                const program = programList[i];
+                const startTime = timeToMinutes(program.startTime);
+                
+                if (currentTime < startTime) {
+                    currentProgramIndex = i - 1; // 上一个节目（如果有）
+                    if (currentProgramIndex < 0) currentProgramIndex = 0;
+                    return;
+                }
+            }
+            
+            // 如果所有节目都已结束，设置为最后一个节目
+            if (programList.length > 0) {
+                currentProgramIndex = programList.length - 1;
+            }
+        }
+        
+        // 将时间字符串转换为分钟数
+        function timeToMinutes(timeStr) {
+            const parts = timeStr.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+        
+        // 格式化时间显示
+        function formatTimeDisplay(startTime, endTime) {
+            return `${startTime} - ${endTime}`;
+        }
+        
+        // 计算节目时长
+        function calculateDuration(startTime, endTime) {
+            const start = timeToMinutes(startTime);
+            const end = timeToMinutes(endTime);
+            const duration = end - start;
+            
+            if (duration <= 0) return "0分钟";
+            
+            const hours = Math.floor(duration / 60);
+            const minutes = duration % 60;
+            
+            if (hours > 0) {
+                return `${hours}小时${minutes > 0 ? `${minutes}分钟` : ''}`;
+            } else {
+                return `${minutes}分钟`;
+            }
+        }
+        
+        // 更新显示
+        function updateDisplay() {
+            updateProgramList();
+            updateBroadcastInfo();
+            updateStatus();
+        }
+        
+        // 更新节目列表显示
+        function updateProgramList() {
+            const programListElement = document.getElementById('programList');
+            programListElement.innerHTML = '';
+            
+            if (programList.length === 0) {
+                programListElement.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无节目，请添加节目</div>';
+                return;
+            }
+            
+            programList.forEach((program, index) => {
+                const programItem = document.createElement('div');
+                programItem.className = 'program-item';
+                
+                if (index === currentProgramIndex) {
+                    programItem.classList.add('current');
+                } else if (index === currentProgramIndex + 1) {
+                    programItem.classList.add('next');
+                }
+                
+                programItem.innerHTML = `
+                    <div class="program-time-slot">${program.startTime} - ${program.endTime}</div>
+                    <div class="program-name">${program.name}</div>
+                    <div class="program-duration">${calculateDuration(program.startTime, program.endTime)}</div>
+                    <div class="program-actions">
+                        <button class="program-btn edit" data-index="${index}">编辑</button>
+                        <button class="program-btn delete" data-index="${index}">删除</button>
+                    </div>
+                `;
+                
+                programListElement.appendChild(programItem);
+            });
+            
+            // 添加编辑和删除事件监听
+            document.querySelectorAll('.program-btn.edit').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    editProgram(index);
+                });
+            });
+            
+            document.querySelectorAll('.program-btn.delete').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    deleteProgram(index);
+                });
+            });
+        }
+        
+        // 更新播出信息
+        function updateBroadcastInfo() {
+            const currentProgramTitle = document.getElementById('currentProgramTitle');
+            const currentProgramTime = document.getElementById('currentProgramTime');
+            const nextProgramTitle = document.getElementById('nextProgramTitle');
+            const nextProgramTime = document.getElementById('nextProgramTime');
+            
+            if (currentProgramIndex >= 0 && currentProgramIndex < programList.length) {
+                const currentProgram = programList[currentProgramIndex];
+                
+                if (displayFormat === 'combined') {
+                    currentProgramTitle.textContent = `正在播出：${currentProgram.name}`;
+                } else {
+                    currentProgramTitle.textContent = currentProgram.name;
+                }
+                
+                currentProgramTime.textContent = formatTimeDisplay(currentProgram.startTime, currentProgram.endTime);
+            } else {
+                currentProgramTitle.textContent = displayFormat === 'combined' ? '正在播出：-- 暂无节目 --' : '-- 暂无节目 --';
+                currentProgramTime.textContent = '--:-- -- --:--';
+            }
+            
+            if (currentProgramIndex + 1 < programList.length) {
+                const nextProgram = programList[currentProgramIndex + 1];
+                
+                if (displayFormat === 'combined') {
+                    nextProgramTitle.textContent = `接下来：${nextProgram.name}`;
+                } else {
+                    nextProgramTitle.textContent = nextProgram.name;
+                }
+                
+                nextProgramTime.textContent = formatTimeDisplay(nextProgram.startTime, nextProgram.endTime);
+            } else {
+                nextProgramTitle.textContent = displayFormat === 'combined' ? '接下来：-- 暂无节目 --' : '-- 暂无节目 --';
+                nextProgramTime.textContent = '--:-- -- --:--';
+            }
+            
+            // 应用文本效果
+            applyTextEffects();
+        }
+        
+        // 应用文本效果
+        function applyTextEffects() {
+            const titles = document.querySelectorAll('.program-title');
+            
+            titles.forEach(title => {
+                if (textEffect === 'glow') {
+                    title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textGlow 4s infinite alternate';
+                } else {
+                    title.style.animation = 'fadeInUp 3s ease-out 0.3s both, textPulse 3s infinite';
+                }
+            });
+        }
+        
+        // 更新状态
+        function updateStatus() {
+            const broadcastStatus = document.getElementById('broadcastStatus');
+            const systemStatus = document.getElementById('systemStatus');
+            
+            if (programList.length === 0) {
+                broadcastStatus.textContent = '节目单为空';
+                systemStatus.textContent = '等待节目单';
+                return;
+            }
+            
+            if (currentProgramIndex < 0 || currentProgramIndex >= programList.length) {
+                broadcastStatus.textContent = '未找到当前节目';
+                systemStatus.textContent = '等待节目开始';
+                return;
+            }
+            
+            const currentProgram = programList[currentProgramIndex];
+            
+            if (isPlaying) {
+                broadcastStatus.textContent = `正在播出: ${currentProgram.name}`;
+                systemStatus.textContent = '播出中';
+            } else {
+                broadcastStatus.textContent = `已暂停: ${currentProgram.name}`;
+                systemStatus.textContent = '播出暂停';
+            }
+        }
+        
+        // 更新文本效果按钮状态
+        function updateTextEffectButtons() {
+            const glowEffectBtn = document.getElementById('glowEffectBtn');
+            const pulseEffectBtn = document.getElementById('pulseEffectBtn');
+            
+            if (textEffect === 'glow') {
+                glowEffectBtn.classList.add('primary');
+                pulseEffectBtn.classList.remove('primary');
+            } else {
+                glowEffectBtn.classList.remove('primary');
+                pulseEffectBtn.classList.add('primary');
+            }
+        }
+        
+        // 设置事件监听
+        function setupEventListeners() {
+            // 播出控制按钮
+            document.getElementById('playBtn').addEventListener('click', startPlayback);
+            document.getElementById('pauseBtn').addEventListener('click', pausePlayback);
+            document.getElementById('prevBtn').addEventListener('click', previousProgram);
+            document.getElementById('nextBtn').addEventListener('click', nextProgram);
+            
+            // 节目单管理按钮
+            document.getElementById('addProgramBtn').addEventListener('click', showAddProgramModal);
+            document.getElementById('saveProgramListBtn').addEventListener('click', saveProgramList);
+            document.getElementById('loadProgramListBtn').addEventListener('click', loadProgramListFromFile);
+            document.getElementById('clearProgramListBtn').addEventListener('click', clearProgramList);
+            
+            // 显示设置
+            document.getElementById('displayFormat').addEventListener('change', function() {
+                displayFormat = this.value;
+                saveSettings();
+                updateBroadcastInfo();
+            });
+            
+            document.getElementById('glowEffectBtn').addEventListener('click', function() {
+                textEffect = 'glow';
+                updateTextEffectButtons();
+                saveSettings();
+                applyTextEffects();
+            });
+            
+            document.getElementById('pulseEffectBtn').addEventListener('click', function() {
+                textEffect = 'pulse';
+                updateTextEffectButtons();
+                saveSettings();
+                applyTextEffects();
+            });
+            
+            // 布局控制
+            document.getElementById('resetLayoutBtn').addEventListener('click', resetLayout);
+            document.getElementById('saveLayoutBtn').addEventListener('click', saveLayout);
+            
+            // 节目模态框
+            document.getElementById('cancelProgramBtn').addEventListener('click', hideProgramModal);
+            document.getElementById('saveProgramBtn').addEventListener('click', saveProgram);
+        }
+        
+        // 开始播出
+        function startPlayback() {
+            isPlaying = true;
+            updateDisplay();
+        }
+        
+        // 暂停播出
+        function pausePlayback() {
+            isPlaying = false;
+            updateDisplay();
+        }
+        
+        // 上一个节目
+        function previousProgram() {
+            if (currentProgramIndex > 0) {
+                currentProgramIndex--;
+                updateDisplay();
+            }
+        }
+        
+        // 下一个节目
+        function nextProgram() {
+            if (currentProgramIndex < programList.length - 1) {
+                currentProgramIndex++;
+                updateDisplay();
+            }
+        }
+        
+        // 自动切换到下一个节目
+        function advanceToNextProgram() {
+            if (currentProgramIndex < programList.length - 1) {
+                currentProgramIndex++;
+                updateDisplay();
+            }
+        }
+        
+        // 显示添加节目模态框
+        function showAddProgramModal() {
+            editIndex = -1;
+            document.getElementById('modalTitle').textContent = '添加新节目';
+            document.getElementById('programName').value = '';
+            document.getElementById('programDescription').value = '';
+            document.getElementById('startTime').value = '09:00';
+            document.getElementById('endTime').value = '10:00';
+            document.getElementById('programModal').style.display = 'flex';
+        }
+        
+        // 编辑节目
+        function editProgram(index) {
+            editIndex = index;
+            const program = programList[index];
+            
+            document.getElementById('modalTitle').textContent = '编辑节目';
+            document.getElementById('programName').value = program.name;
+            document.getElementById('programDescription').value = program.description || '';
+            document.getElementById('startTime').value = program.startTime;
+            document.getElementById('endTime').value = program.endTime;
+            document.getElementById('programModal').style.display = 'flex';
+        }
+        
+        // 隐藏节目模态框
+        function hideProgramModal() {
+            document.getElementById('programModal').style.display = 'none';
+        }
+        
+        // 保存节目
+        function saveProgram() {
+            const name = document.getElementById('programName').value.trim();
+            const description = document.getElementById('programDescription').value.trim();
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            if (!name) {
+                alert('请输入节目名称');
+                return;
+            }
+            
+            if (startTime >= endTime) {
+                alert('结束时间必须晚于开始时间');
+                return;
+            }
+            
+            const program = {
+                name: name,
+                description: description,
+                startTime: startTime,
+                endTime: endTime
+            };
+            
+            if (editIndex === -1) {
+                // 添加新节目
+                programList.push(program);
+            } else {
+                // 更新现有节目
+                programList[editIndex] = program;
+            }
+            
+            // 按开始时间排序
+            programList.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+            
+            // 重新查找当前节目
+            findCurrentProgram();
+            
+            hideProgramModal();
+            updateDisplay();
+            saveProgramListToStorage();
+        }
+        
+        // 删除节目
+        function deleteProgram(index) {
+            if (confirm('确定要删除这个节目吗？')) {
+                programList.splice(index, 1);
+                
+                // 调整当前节目索引
+                if (currentProgramIndex >= index) {
+                    currentProgramIndex--;
+                    if (currentProgramIndex < 0 && programList.length > 0) {
+                        currentProgramIndex = 0;
+                    }
+                }
+                
+                updateDisplay();
+                saveProgramListToStorage();
+            }
+        }
+        
+        // 保存节目单到本地存储
+        function saveProgramListToStorage() {
+            localStorage.setItem('programList', JSON.stringify(programList));
+        }
+        
+        // 保存节目单到文件
+        function saveProgramList() {
+            const dataStr = JSON.stringify(programList, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'program_schedule.json';
+            link.click();
+        }
+        
+        // 从文件加载节目单
+        function loadProgramListFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (Array.isArray(data)) {
+                            programList = data;
+                            findCurrentProgram();
+                            updateDisplay();
+                            saveProgramListToStorage();
+                            alert('节目单加载成功！');
+                        } else {
+                            alert('文件格式不正确');
+                        }
+                    } catch (error) {
+                        alert('文件解析失败：' + error.message);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+        
+        // 清空节目单
+        function clearProgramList() {
+            if (confirm('确定要清空整个节目单吗？此操作不可撤销。')) {
+                programList = [];
+                currentProgramIndex = -1;
+                updateDisplay();
+                saveProgramListToStorage();
+            }
+        }
+        
+        // 保存设置
+        function saveSettings() {
+            const settings = {
+                stationName: document.getElementById('stationName').value,
+                autoAdvance: autoAdvance,
+                displayFormat: displayFormat,
+                textEffect: textEffect
+            };
+            localStorage.setItem('programSettings', JSON.stringify(settings));
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>
